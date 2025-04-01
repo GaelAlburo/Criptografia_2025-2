@@ -1,9 +1,12 @@
+# Autor: Rodrigo Gael Guzmán Alburo
+# Fecha: 01/04/25
+
 from sympy import isprime
 
 
 def solicitar_valores(type):
     """
-    Solicita al usuario un valor entero positivo y verifica si es primo (si corresponde).
+    Solicita al usuario un valor entero positivo y lo verifica.
 
     Args:
         tpe(str): Tipo de valor a solicitar ('P', 'G', 'a' o 'b').
@@ -12,19 +15,11 @@ def solicitar_valores(type):
         int: Valor ingresado por el usuario.
     """
 
-    if type == "P":
-        print(f"Ingrese el valor de '{type}' (primo entero positivo): ")
+    print(f"Ingrese el valor de '{type}' (entero positivo): ")
+    n = input()
+    while not n.isnumeric():
+        print(f"¡Error! Ingrese un número entero positivo para '{type}': ")
         n = input()
-        while not n.isnumeric() or not isprime(int(n)):
-            print(f"¡Error! Ingrese un número primo entero positivo para '{type}': ")
-            n = input()
-
-    elif type == "G" or type == "a" or type == "b":
-        print(f"Ingrese el valor de '{type}' (entero positivo): ")
-        n = input()
-        while not n.isnumeric():
-            print(f"¡Error! Ingrese un número entero positivo para '{type}': ")
-            n = input()
     return int(n)
 
 
