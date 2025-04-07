@@ -1,5 +1,4 @@
 # Autor: Rodrigo Gael Guzmán Alburo
-# Fecha: 01/04/25
 
 from sympy import isprime
 
