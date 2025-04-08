@@ -1,5 +1,4 @@
 # Autor: Rodrigo Gael Guzman Alburo
-# Fecha: 07/04/2025
 
 ##############################################################
 ########## F U N C I O N E S    A U X I L I A R E S ##########
@@ -307,67 +306,145 @@ def final_permutation(m):
     final = ''.join(m[pos-1] for pos in FIP)
     return final
 
+def prepare_key(key_text):
+    """Convierte y ajusta la llave UTF-8 a 64 bits (8 caracteres)"""
+    key_bits = string_to_bits(key_text)
+    # Asegurar 64 bits (8 bytes)
+    if len(key_bits) < 64:
+        key_bits = key_bits.ljust(64, '0')  # Padding con ceros
+    elif len(key_bits) > 64:
+        key_bits = key_bits[:64]  # Truncar
+    return key_bits
+
+def define_message_type():
+    """Función para definir el tipo de mensaje a cifrar."""
+
+    print("¿Su mensaje está en 1)ASCII o 2)hexadecimal?")
+    choice = 0
+    while choice not in ["1", "2"]:
+        choice = input("Elige 1 o 2: ").strip()
+        if choice == "1":
+            # Plaintext to hex conversion
+            message = input("Ingrese su mensaje en ASCII: ").strip()
+            message_bytes = message.encode('utf-8')
+
+            # Pad to multiple of 8 bytes (64 bits)
+            padding_len = (8 - (len(message_bytes) % 8)) % 8
+            padded_bytes = message_bytes + bytes([padding_len]) * padding_len
+
+            # Convert padded message to bits
+            binary_message = ''.join(format(byte, '08b') for byte in padded_bytes)
+            return binary_message
+        elif choice == "2":
+        # Hex input
+            message = input("Ingrese su mensaje en ASCII hexadecimal: ").strip()
+            binary_message = hex_to_bits(message)
+            return binary_message
+        else:
+            print("Opción invalida. Elige 1 o 2.")
+            
+
+def define_return_type(plaintext_bits):
+    """Función para definir el tipo de salida del mensaje descifrado."""
+    print("Dar el mensaje descifrado en  1)ASCII o 2)hexadecimal:")
+    choice = 0
+    while choice not in ["1", "2"]:
+        print("Elige 1 o 2: ", end="")
+        choice = input().strip()
+        if choice == "1":
+            # Plaintext in ASCII:
+            # Convert to bytes
+            plaintext_bytes = bytes(
+                int(plaintext_bits[i:i+8], 2)
+                for i in range(0, len(plaintext_bits), 8)
+            )
+            
+            # Remove PKCS#7 padding
+            padding_len = plaintext_bytes[-1]
+            plaintext_bytes = plaintext_bytes[:-padding_len]
+
+            plaintext = plaintext_bytes.decode('utf-8', errors='ignore')
+
+            print(f"Mensaje descifrado: {plaintext}")
+        elif choice == "2":
+            print(f"Mensaje descifrado: {bits_to_hex(plaintext_bits).upper()}")
+
+        elif choice not in ["1", "2"]:
+            print("Opción invalida. Elige 1 o 2.")
+
 def encrypt_message():
     """Función principal para cifrar el mensaje utilizando DES."""
+    print("\n\t C I F R A D O    D E S ") 
+    binary_message = define_message_type()
 
-    print("Input the message:", end=" ")
-    message = input().strip()
-    #binary_message = hex_to_bits(message)
-    binary_message = string_to_bits(message)
-
-    print("Input the key:", end=" ")
+    print("Ingresa la llave en hexadecimal:", end=" ")
     key = input().strip()
-    #binary_key = hex_to_bits(key)
-    binary_key = string_to_bits(key)
+    binary_key = hex_to_bits(key)
+    #binary_key = string_to_bits(key)
 
     # Generar 16 subllaves
     subkeys = create_subkeys(binary_key)
 
-    # Aplica la permutación inicial (igual que encripcion)
-    L, R = initial_permutation(binary_message)
+    cipher_text = ""
+    for i in range(0, len(binary_message), 64):
+        block = binary_message[i:i+64]
 
-    # 16 rondas de Feistel con las subllaves
-    for i in range(16):
-        L, R = des_round(L, R, subkeys[i])
+        # Aplica la permutación inicial (igual que encripcion)
+        L, R = initial_permutation(block)
 
-    # Se aplica la permutaciópn final
-    cypher_text = final_permutation(R + L)
+        # 16 rondas de Feistel con las subllaves
+        for i in range(16):
+            L, R = des_round(L, R, subkeys[i])
 
-    print(f"Encrypted message: {bits_to_hex(cypher_text).upper()}")
+        # Se aplica la permutaciópn final
+        ciphertext_block = final_permutation(R + L)
+        cipher_text += ciphertext_block
+
+    print(f"Encrypted message: {bits_to_hex(cipher_text).upper()}")
 
 def decrypt_message():
     """Función principal para descifrar el mensaje utilizando DES."""
+    print("\n\t D E S C I F R A D O    D E S ")
+    print("Introduzca el mensaje cifrado:", end=" ")
+    ciphertext_hex = input().strip()
 
-    print("Input the crypted message:", end=" ")
-    message = input().strip()
-    #binary_message = hex_to_bits(message)
-    binary_message = string_to_bits(message)
-
-    print("Input the key:", end=" ")
+    print("Ingresa la llave en hexadecimal:", end=" ")
     key = input().strip()
-    #binary_key = hex_to_bits(key)
-    binary_key = string_to_bits(key)
+    binary_key = hex_to_bits(key)
 
     # Crea 16 subllaves
     subkeys = create_subkeys(binary_key)
+
+    plaintext_bits = ""
+    for i in range(0, len(ciphertext_hex), 16):
+        block_hex = ciphertext_hex[i:i+16]
+        binary_block = hex_to_bits(block_hex)
     
-    # Invierte el orden de las subllaves para el descifrado
-    reversed_subkeys = subkeys[::-1]  # Llaves K16 a K1
+        # Invierte el orden de las subllaves para el descifrado
+        reversed_subkeys = subkeys[::-1]  # Llaves K16 a K1
 
-    # Aplica la permutación inicial (igual que encripcion)
-    L, R = initial_permutation(binary_message)
+        # Aplica la permutación inicial (igual que encripcion)
+        L, R = initial_permutation(binary_block)
 
-    # 16 rondas de Feistel con las subllaves invertidas
-    for i in range(16):
-        L, R = des_round(L, R, reversed_subkeys[i])
+        # 16 rondas de Feistel con las subllaves invertidas
+        for i in range(16):
+            L, R = des_round(L, R, reversed_subkeys[i])
 
-    # Se aplica la permutaciópn final
-    plaintext = final_permutation(R + L)
+        # Se aplica la permutaciópn final
+        plaintext_bits += final_permutation(R + L)
 
-    print(f"Decrypted message: {bits_to_hex(plaintext).upper()}")
+    define_return_type(plaintext_bits)
 
 if __name__ == "__main__":
+    print("\n\t A L G O R I T M O    D E S")
+    opcion = 0
+    while opcion != 3:
+        print("\n1. Cifrar mensaje")
+        print("2. Descifrar mensaje")
+        print("3. Salir")
+        opcion = int(input("Elige una opción: "))
 
-    #encrypt_message()
-
-    decrypt_message()
+        if opcion == 1:
+            encrypt_message()
+        elif opcion == 2:
+            decrypt_message()
