@@ -6,6 +6,11 @@ class AES128:
         self.round_keys = self.key_expansion(key)
 
     def encrypt(self, plaintext):
+        """
+        Cifra el texto plano utilizando AES-128.
+        :param plaintext: Texto plano de 16 bytes.
+        :return: Texto cifrado de 16 bytes.
+        """
         # Asegura que el texto plano sea de 16 bytes
         if len(plaintext) != 16:
             raise ValueError("Plaintext must be 16 bytes long")
@@ -45,6 +50,11 @@ class AES128:
         return self.matrix_to_bytes(state)
     
     def decrypt(self, ciphertext):
+        """
+        Descifra el texto cifrado utilizando AES-128.
+        :param ciphertext: Texto cifrado de 16 bytes.
+        :return: Texto descifrado de 16 bytes.
+        """
         # Asegura que el texto cifrado sea de 16 bytes
         if len(ciphertext) != 16:
             raise ValueError("Ciphertext must be 16 bytes long")
@@ -84,20 +94,39 @@ class AES128:
         return self.matrix_to_bytes(state)
     
     def print_matrix(self, matrix):
+        """
+        Imprime la matriz de bytes en formato hexadecimal.
+        :param matrix: Matriz de bytes (4x4).
+        """
         # Imprime la matriz de bytes en formato hexadecimal
         for row in matrix:
             print(" ".join(f"{byte:02x}" for byte in row))
         print()
     
     def sub_bytes(self, state):
+        """
+        Sustituye cada byte en el estado por su correspondiente en la S-box.
+        :param state: Estado de 4x4 bytes.
+        :return: Estado transformado.
+        """
         # Sustituye cada byte en el estado por su correspondiente en la S-box
         return [[self.sbox[state[i][j]] for j in range(4)] for i in range(4)]
     
     def inv_sub_bytes(self, state):
+        """
+        Sustituye cada byte en el estado por su correspondiente en la S-box inversa.
+        :param state: Estado de 4x4 bytes.
+        :return: Estado transformado.
+        """
         # Sustituye cada byte en el estado por su correspondiente en la S-box inversa
         return [[self.inv_s_box[state[i][j]] for j in range(4)] for i in range(4)]
     
     def shift_rows(self, state):
+        """
+        Desplaza las filas del estado a la izquierda.
+        :param state: Estado de 4x4 bytes.
+        :return: Estado transformado.
+        """
         # Crea una nueva matriz para el estado
         new_state = [row[:] for row in state]
         
@@ -115,6 +144,11 @@ class AES128:
         return new_state
     
     def inv_shift_rows(self, state):
+        """
+        Desplaza las filas del estado a la derecha.
+        :param state: Estado de 4x4 bytes.
+        :return: Estado transformado.
+        """
         # Crea una nueva matriz para el estado
         new_state = [row[:] for row in state]
         
@@ -132,6 +166,11 @@ class AES128:
         return new_state
     
     def mix_columns(self, state):
+        """
+        Mezcla las columnas del estado utilizando la matriz de mezcla.
+        :param state: Estado de 4x4 bytes.
+        :return: Estado transformado.
+        """
         # Crea una nueva matriz para almacenar el resultado
         new_state = [[0]*4 for _ in range(4)]
         
@@ -156,6 +195,11 @@ class AES128:
         return new_state
     
     def inv_mix_columns(self, state):
+        """
+        Mezcla las columnas del estado utilizando la matriz de mezcla inversa.
+        :param state: Estado de 4x4 bytes.
+        :return: Estado transformado.
+        """
         # Crea una nueva matriz para almacenar el resultado
         new_state = [[0]*4 for _ in range(4)]
         
@@ -179,6 +223,12 @@ class AES128:
         return new_state
     
     def gmul(self, a, b):
+        """
+        Multiplicación en el campo de Galois GF(2^8).
+        :param a: Primer operando.
+        :param b: Segundo operando.
+        :return: Resultado de la multiplicación.
+        """
         # Multiplicación en el campo de Galois GF(2^8)
         p = 0
         for _ in range(8):
@@ -192,10 +242,21 @@ class AES128:
         return p & 0xFF
     
     def add_round_key(self, state, round_key):
+        """
+        Añade la clave de ronda al estado mediante una operación XOR.
+        :param state: Estado de 4x4 bytes.
+        :param round_key: Clave de ronda de 4x4 bytes.
+        :return: Estado transformado.
+        """
         # Añade la clave de ronda al estado mediante una operación XOR
         return [[state[i][j] ^ round_key[i][j] for j in range(4)] for i in range(4)]
     
     def key_expansion(self, key):
+        """
+        Expande la clave de 16 bytes a 44 palabras (4 bytes cada una).
+        :param key: Clave de 16 bytes.
+        :return: Lista de claves de ronda (44 palabras).
+        """
         def rot_word(word):
             return word[1:] + word[:1]
         
@@ -236,6 +297,11 @@ class AES128:
         return round_keys
     
     def bytes_to_matrix(self, text):
+        """
+        Convierte un texto de 16 bytes a una matriz de 4x4.
+        :param text: Texto de 16 bytes.
+        :return: Matriz de 4x4.
+        """
         return [
             [text[0], text[4], text[8], text[12]],
             [text[1], text[5], text[9], text[13]],
@@ -244,6 +310,11 @@ class AES128:
         ]
     
     def matrix_to_bytes(self, matrix):
+        """
+        Convierte una matriz de 4x4 a un texto de 16 bytes.
+        :param matrix: Matriz de 4x4.
+        :return: Texto de 16 bytes.
+        """
         return bytes([
             matrix[0][0], matrix[1][0], matrix[2][0], matrix[3][0],
             matrix[0][1], matrix[1][1], matrix[2][1], matrix[3][1],
@@ -306,26 +377,23 @@ if __name__ == "__main__":
 
     print("\n------------------------------------------------------------\n")
     print("C I F R A D O  AES-128\n")
-    key_plain = input("Ingrese la clave de 16 bytes: ").encode()
-    plaintext = input("Ingrese el texto plano de 16 bytes: ").encode()
+    key_plain = input("Ingrese la llave: ").encode()
+    plaintext = input("Ingrese el texto plano: ").encode()
 
     aes = AES128(key_plain)
     ciphertext = aes.encrypt(plaintext)
     print("Texto plano:", plaintext)
-    print("Texto plano (hex):", plaintext.hex())
     print("Clave:", key_plain)
-    print("Clave (hex):", key_plain.hex())
     print("Texto cifrado:", ciphertext.hex())
 
     print("\n------------------------------------------------------------\n")
     print("D E S C I F R A D O  AES-128\n")
 
     # Desencriptar el texto cifrado
-    cipher_text = bytes.fromhex("29c3505f571420f6402299b31a02d73a")
+    cipher_text = bytes.fromhex(input("Ingrese el texto cifrado (hex): "))
+    key_plain = input("Ingrese la llave: ").encode()
     aes_decrypt = AES128(key_plain)
     decrypted_text = aes_decrypt.decrypt(cipher_text)
     print("Texto cifrado:", cipher_text.hex())
-    print("Texto cifrado (hex):", cipher_text.hex())
-    print("Texto descifrado:", decrypted_text)
     print("Texto descifrado (hex):", decrypted_text.hex())
     print("Texto descifrado (ascii):", decrypted_text.decode())
