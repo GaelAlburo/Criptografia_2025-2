@@ -11,86 +11,90 @@ class AES128:
         :param plaintext: Texto plano de 16 bytes.
         :return: Texto cifrado de 16 bytes.
         """
-        # Asegura que el texto plano sea de 16 bytes
-        if len(plaintext) != 16:
-            raise ValueError("Plaintext must be 16 bytes long")
-
-        # Convierte el texto plano a una matriz de bytes
-        state = self.bytes_to_matrix(plaintext)
-
-        # Impresión de estado inicial y claves de ronda
-        print("Estado inicial:")
-        self.print_matrix(state)
+        # Aplicar padding al texto plano
+        padded_plaintext = self.pad(plaintext)
         
-        print("Round key 0: ", self.round_keys[0])
-
-        # Ronda inicial: AddRoundKey
+        # Dividir en bloques de 16 bytes y cifrar cada uno
+        ciphertext = b''
+        for i in range(0, len(padded_plaintext), 16):
+            block = padded_plaintext[i:i+16]
+            ciphertext += self._encrypt_block(block)
+        
+        return ciphertext
+    
+    def _encrypt_block(self, plaintext):
+        """
+        Cifra un bloque de 16 bytes utilizando AES-128.
+        :param plaintext: Texto plano de 16 bytes.
+        :return: Texto cifrado.
+        """
+        if len(plaintext) != 16:
+            raise ValueError("Block must be exactly 16 bytes for encryption")
+        
+        state = self.bytes_to_matrix(plaintext)
+        
+        # Ronda inicial
         state = self.add_round_key(state, self.round_keys[0])
-
-        print("Estado después de add_round_key:")
-        self.print_matrix(state)
-
+        
         # 9 rondas principales
         for i in range(1, 10):
-            print(f"Round key {i}: ", self.round_keys[i])
             state = self.sub_bytes(state)
             state = self.shift_rows(state)
             state = self.mix_columns(state)
             state = self.add_round_key(state, self.round_keys[i])
-            print(f"Estado después de ronda {i}:")
-            self.print_matrix(state)
-
-        # Última ronda (sin MixColumns)
-        print("Round key 10: ", self.round_keys[10])
+        
+        # Última ronda
         state = self.sub_bytes(state)
         state = self.shift_rows(state)
         state = self.add_round_key(state, self.round_keys[10])
-
-        # Convierte la matriz de bytes de vuelta a texto cifrado
+        
         return self.matrix_to_bytes(state)
     
     def decrypt(self, ciphertext):
         """
-        Descifra el texto cifrado utilizando AES-128.
+        Desencripta un texto cifrado utilizando AES-128.
         :param ciphertext: Texto cifrado de 16 bytes.
-        :return: Texto descifrado de 16 bytes.
+        :return: Texto descifrado.
         """
-        # Asegura que el texto cifrado sea de 16 bytes
-        if len(ciphertext) != 16:
-            raise ValueError("Ciphertext must be 16 bytes long")
-
-        # Convierte el texto cifrado a una matriz de bytes
-        state = self.bytes_to_matrix(ciphertext)
-
-        # Impresión de estado inicial y claves de ronda
-        print("Estado inicial:")
-        self.print_matrix(state)
+        # Verificar que el texto cifrado tenga longitud válida
+        if len(ciphertext) % 16 != 0:
+            raise ValueError("Ciphertext length must be a multiple of 16 bytes")
         
-        print("Round key 10: ", self.round_keys[10])
-
-        # Ronda inicial: AddRoundKey
+        # Dividir en bloques de 16 bytes y descifrar cada uno
+        plaintext = b''
+        for i in range(0, len(ciphertext), 16):
+            block = ciphertext[i:i+16]
+            plaintext += self._decrypt_block(block)
+        
+        # Eliminar el padding
+        return self.unpad(plaintext)
+    
+    def _decrypt_block(self, ciphertext):
+        """
+        Desencripta un bloque de 16 bytes utilizando AES-128.
+        :param ciphertext: Texto cifrado de 16 bytes.
+        :return: Texto descifrado.
+        """
+        if len(ciphertext) != 16:
+            raise ValueError("Block must be exactly 16 bytes for decryption")
+        
+        state = self.bytes_to_matrix(ciphertext)
+        
+        # Ronda inicial
         state = self.add_round_key(state, self.round_keys[10])
-
-        print("Estado después de add_round_key:")
-        self.print_matrix(state)
-
-        # 9 rondas principales
-        for i in range(9, 0, -1):
-            print(f"Round key {i}: ", self.round_keys[i])
-            state = self.inv_shift_rows(state)
-            state = self.inv_sub_bytes(state)
-            state = self.add_round_key(state, self.round_keys[i])
-            state = self.inv_mix_columns(state)
-            print(f"Estado después de ronda {i}:")
-            self.print_matrix(state)
-
-        # Última ronda (sin InvMixColumns)
-        print("Round key 0: ", self.round_keys[0])
         state = self.inv_shift_rows(state)
         state = self.inv_sub_bytes(state)
+        
+        # 9 rondas principales
+        for i in range(9, 0, -1):
+            state = self.add_round_key(state, self.round_keys[i])
+            state = self.inv_mix_columns(state)
+            state = self.inv_shift_rows(state)
+            state = self.inv_sub_bytes(state)
+        
+        # Última ronda
         state = self.add_round_key(state, self.round_keys[0])
-
-        # Convierte la matriz de bytes de vuelta a texto descifrado
+        
         return self.matrix_to_bytes(state)
     
     def print_matrix(self, matrix):
@@ -321,6 +325,24 @@ class AES128:
             matrix[0][2], matrix[1][2], matrix[2][2], matrix[3][2],
             matrix[0][3], matrix[1][3], matrix[2][3], matrix[3][3]
         ])
+    
+    def pad(self, data):
+        """
+        Añade PKCS#7 padding a los datos.
+        :param data: Datos a cifrar.
+        :return: Datos con padding.
+        """
+        pad_len = 16 - (len(data) % 16)
+        return data + bytes([pad_len] * pad_len)
+
+    def unpad(self, data):
+        """
+        Elimina el padding PKCS#7 de los datos.
+        :param data: Datos a descifrar.
+        :return: Datos sin padding.
+        """
+        pad_len = data[-1]
+        return data[:-pad_len]
     
     # S-box de AES
     sbox = [
